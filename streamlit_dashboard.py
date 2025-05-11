@@ -99,6 +99,14 @@ def get_accuracy_over_time(accuracy_df):
     overall_accuracy = accuracy_df[accuracy_df['METRIC_TYPE'] == 'OVERALL'].copy()
     return overall_accuracy.sort_values('GAME_DATE')
 
+# Function to apply conditional formatting to the "Correct" column
+def highlight_correct(val):
+    if val == "✓":
+        return "background-color: #CCFFCC;"  # Light green
+    elif val == "✗":
+        return "background-color: #FFCCCC;"  # Light red
+    return ""
+
 # Main function
 def main():
     st.markdown('<div class="main-header">🏀 Basketball Prediction Model Dashboard</div>', unsafe_allow_html=True)
@@ -170,12 +178,13 @@ def main():
             
             with col2:
                 # Create figure with subplots
+                # FIX 1: Add more margin_t to the second and third subplots
                 fig = make_subplots(rows=3, cols=1, 
                                 subplot_titles=[f"{pred_winner} Win Probability", 
                                                 f"{home_team} Running Accuracy", 
                                                 f"{away_team} Running Accuracy"],
-                                vertical_spacing=0.15,
-                                row_heights=[0.4, 0.3, 0.3])
+                                vertical_spacing=0.25,  # Increased from 0.15 to 0.25
+                                row_heights=[0.34, 0.33, 0.33])  # Adjusted to be more equal
                 
                 # Win probability bar
                 fig.add_trace(
@@ -218,13 +227,17 @@ def main():
                 
                 # Update layout
                 fig.update_layout(
-                    height=250,
-                    margin=dict(l=10, r=10, t=30, b=10),
+                    height=300,  
+                    margin=dict(l=10, r=10, t=30, b=10),  
                     xaxis=dict(range=[0, 100], ticksuffix='%'),
                     xaxis2=dict(range=[0, 100], ticksuffix='%'),
-                    xaxis3=dict(range=[0, 100], ticksuffix='%')
+                    xaxis3=dict(range=[0, 100], ticksuffix='%')         
                 )
+                fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False)
+                fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False, row=2, col=1)
+                fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False, row=3, col=1)
                 
+                  
                 st.plotly_chart(fig, use_container_width=True)
             
             # Add a divider between games
@@ -273,25 +286,11 @@ def main():
         formatted_df['Date'] = formatted_df['Date'].dt.strftime('%Y-%m-%d')
         formatted_df['Correct'] = formatted_df['Correct'].map({True: '✓', False: '✗'})
         
+        # Apply conditional formatting to the "Correct" column
+        styled_df = formatted_df.style.applymap(highlight_correct, subset=["Correct"])
         
-        # Create a stylish DataTable
-        fig = go.Figure(data=[go.Table(
-            header=dict(
-                values=list(formatted_df.columns),
-                fill_color='#1E88E5',
-                align='center',
-                font=dict(color='white', size=14)
-            ),
-            cells=dict(
-                values=[formatted_df[col] for col in formatted_df.columns],
-                fill_color='#F0F2F6',
-                align='center',
-                font=dict(size=13),
-                height=35
-            )
-        )])
-        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
-        st.plotly_chart(fig, use_container_width=True)
+        # Display the styled DataFrame with a scrollbar
+        st.dataframe(styled_df, use_container_width=True, height=400)
         
 
     # Accuracy over time chart
@@ -376,7 +375,9 @@ def main():
 
             st.markdown("### Model Information")
             st.markdown("""
-            This dashboard visualizes predictions from a basketball game prediction model:
+            A machine learning model (XGBoost) was trained on historical NBA game data to predict the outcome of games.
+                        
+            The current model tends to weak for playoff games.
             
             - **Model Performance**: The model has an overall accuracy of {:.1%}
             - **Home Court Advantage**: Home teams win {:.1%} of games
@@ -387,7 +388,10 @@ def main():
                 min_date.strftime('%Y-%m-%d'),
                 max_date.strftime('%Y-%m-%d')
             ))
-            
+            st.markdown("### Predictions Dashboard")
+            st.markdown("""
+            The model predicts the probability of a team winning the game, and it shows how accurate the model has been for each team.
+            """)
 
 
 # Run the app
