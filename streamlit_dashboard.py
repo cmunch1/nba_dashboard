@@ -377,7 +377,7 @@ def main():
             st.markdown("""
             A machine learning model (XGBoost) was trained on historical NBA game data to predict the outcome of games.
                         
-            The current model tends to weak for playoff games.
+            The current model tends to be weak for playoff games.
             
             - **Model Performance**: The model has an overall accuracy of {:.1%}
             - **Home Court Advantage**: Home teams win {:.1%} of games
