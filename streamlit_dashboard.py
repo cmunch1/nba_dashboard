@@ -95,9 +95,16 @@ def get_team_rankings(accuracy_df):
     return latest_team_accuracy.sort_values('METRIC_VALUE', ascending=False)
 
 def get_accuracy_over_time(accuracy_df):
-    """Get model accuracy over time"""
+    """Get model accuracy over time for both overall and 7-day average"""
+    # Get running accuracy
     overall_accuracy = accuracy_df[accuracy_df['METRIC_TYPE'] == 'OVERALL'].copy()
-    return overall_accuracy.sort_values('GAME_DATE')
+    overall_accuracy = overall_accuracy.sort_values('GAME_DATE')
+    
+    # Get 7-day average accuracy
+    seven_day_avg = accuracy_df[accuracy_df['METRIC_TYPE'] == 'OVERALL_7_DAY_AVG'].copy()
+    seven_day_avg = seven_day_avg.sort_values('GAME_DATE')
+    
+    return overall_accuracy, seven_day_avg
 
 # Function to apply conditional formatting to the "Correct" column
 def highlight_correct(val):
@@ -295,18 +302,57 @@ def main():
 
     # Accuracy over time chart
     st.markdown('<div class="sub-header">Model Accuracy Over Time</div>', unsafe_allow_html=True)
-    accuracy_over_time = get_accuracy_over_time(accuracy_df)
+    overall_accuracy, seven_day_avg = get_accuracy_over_time(accuracy_df)
     
-    fig = px.line(accuracy_over_time, x='GAME_DATE', y='METRIC_VALUE',
-                  labels={'GAME_DATE': 'Date', 'METRIC_VALUE': 'Accuracy'},
-                  title='Prediction Model Accuracy Trend')
-    fig.update_traces(line=dict(color='#FF4B4B', width=3))
+    # Create a combined figure with both trend lines
+    fig = go.Figure()
+    
+    # Add running accuracy line
+    fig.add_trace(go.Scatter(
+        x=overall_accuracy['GAME_DATE'], 
+        y=overall_accuracy['METRIC_VALUE'],
+        mode='lines',
+        name='Running Accuracy',
+        line=dict(color='#FF4B4B', width=3)
+    ))
+    
+    # Add 7-day average line
+    fig.add_trace(go.Scatter(
+        x=seven_day_avg['GAME_DATE'], 
+        y=seven_day_avg['METRIC_VALUE'],
+        mode='lines',
+        name='7-Day Average',
+        line=dict(color='#1E88E5', width=3, dash='dash')
+    ))
+    
+    # Update layout
     fig.update_layout(
+        title='Prediction Model Accuracy Trend',
+        xaxis_title='Date',
+        yaxis_title='Accuracy',
         yaxis=dict(tickformat=".1%"),
         hovermode="x unified",
-        height=400
+        height=400,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
     )
-    st.plotly_chart(fig, use_container_width=True)   
+    
+    # Display the chart
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Add an explanation for the metrics
+    with st.expander("About the Accuracy Metrics"):
+        st.markdown("""
+        - **Running Accuracy**: Cumulative accuracy of all predictions made since the start of the season
+        - **7-Day Average**: Average accuracy of predictions made in the last 7 days only
+        
+        The 7-day average gives you a more recent picture of model performance, which can help identify if prediction quality is improving or declining in the short term.
+        """)
 
     
     # Team Rankings by Prediction Accuracy
